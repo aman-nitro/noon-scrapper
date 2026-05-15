@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noon Scraper — Metrics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0f1a;--surface:#111827;--card:#1a2236;--border:#253049;
+  --text:#e2e8f0;--dim:#94a3b8;--accent:#6366f1;--accent2:#818cf8;
+  --green:#22c55e;--amber:#f59e0b;--rose:#f43f5e;--cyan:#06b6d4;
+  --glow:0 0 30px rgba(99,102,241,.15);
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0}
+a{color:var(--accent2);text-decoration:none}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#1e1b4b 0%,#0f172a 50%,#0c1222 100%);border-bottom:1px solid var(--border);padding:2rem 2.5rem;display:flex;align-items:center;gap:1.5rem;position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;top:-50%;right:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.12),transparent 70%);pointer-events:none}
+.header h1{font-size:1.75rem;font-weight:800;background:linear-gradient(135deg,#c7d2fe,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:var(--dim);font-size:.875rem;margin-top:.25rem}
+.logo{font-size:2.2rem}
+.refresh-btn{margin-left:auto;background:var(--accent);color:#fff;border:none;padding:.55rem 1.2rem;border-radius:.5rem;font-weight:600;cursor:pointer;font-size:.8rem;transition:all .2s;z-index:1}
+.refresh-btn:hover{background:var(--accent2);transform:translateY(-1px);box-shadow:var(--glow)}
+
+/* LAYOUT */
+.container{max-width:1280px;margin:0 auto;padding:2rem 1.5rem}
+
+/* METRIC CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.25rem;margin-bottom:2rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1.5rem;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--glow)}
+.card .icon{font-size:1.8rem;margin-bottom:.75rem;display:block}
+.card .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:600}
+.card .value{font-size:2rem;font-weight:800;margin-top:.25rem;line-height:1.1}
+.card .sub{font-size:.75rem;color:var(--dim);margin-top:.35rem}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:1rem 1rem 0 0}
+.card.purple::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.card.green::before{background:linear-gradient(90deg,#16a34a,var(--green))}
+.card.amber::before{background:linear-gradient(90deg,#d97706,var(--amber))}
+.card.cyan::before{background:linear-gradient(90deg,#0891b2,var(--cyan))}
+.card.rose::before{background:linear-gradient(90deg,#e11d48,var(--rose))}
+
+/* SECTIONS */
+.section{background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1.5rem;margin-bottom:1.5rem}
+.section h2{font-size:1.1rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.section h2 span{font-size:1.2rem}
+
+/* PROGRESS */
+.progress-wrap{margin-bottom:1rem}
+.progress-bar{height:10px;background:var(--surface);border-radius:99px;overflow:hidden;position:relative}
+.progress-fill{height:100%;border-radius:99px;transition:width .6s ease}
+.progress-labels{display:flex;justify-content:space-between;font-size:.75rem;color:var(--dim);margin-top:.35rem}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;padding:.6rem .75rem;color:var(--dim);font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:.7rem;border-bottom:1px solid var(--border)}
+td{padding:.55rem .75rem;border-bottom:1px solid rgba(37,48,73,.5)}
+tr:hover td{background:rgba(99,102,241,.04)}
+.badge{display:inline-block;padding:.15rem .55rem;border-radius:99px;font-size:.7rem;font-weight:600}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-dim{background:rgba(148,163,184,.1);color:var(--dim)}
+
+/* CATEGORY CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:.4rem;max-height:260px;overflow-y:auto;padding-right:.5rem}
+.chips::-webkit-scrollbar{width:4px}
+.chips::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.chip{background:var(--surface);border:1px solid var(--border);padding:.3rem .65rem;border-radius:.4rem;font-size:.72rem;font-family:'Inter',monospace;color:var(--dim);transition:all .15s}
+.chip:hover{border-color:var(--accent);color:var(--accent2)}
+.chip.done{border-color:rgba(34,197,94,.3);color:var(--green)}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:2rem;color:var(--dim);font-size:.85rem}
+
+/* FOOTER */
+.footer{text-align:center;padding:2rem;color:var(--dim);font-size:.75rem;border-top:1px solid var(--border);margin-top:1rem}
+
+/* ANIMATE */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.animate{animation:fadeUp .4s ease both}
+.animate:nth-child(2){animation-delay:.05s}
+.animate:nth-child(3){animation-delay:.1s}
+.animate:nth-child(4){animation-delay:.15s}
+.animate:nth-child(5){animation-delay:.2s}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="logo">🛒</span>
+  <div>
+    <h1>Noon Scraper Dashboard</h1>
+    <p>Real-time metrics from your scrape run</p>
+  </div>
+  <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+</div>
+
+<div class="container" id="app">
+  <div class="empty" style="padding:4rem">Loading data…</div>
+</div>
+
+<div class="footer">Noon Scraper Dashboard · Reads <code>state.json</code> · Open this file in any browser</div>
+
+<script>
+// ── EMBEDDED WAREHOUSE DATA (from constants/noon_warehouses.py) ──
+const WAREHOUSES = {
+  "AE_AUH-S11":{"ecom":"AE_AUH-S11","rocket":null,"area":"Um Laylah","lat":24.0,"lng":54.0},
+  "AE_AUH-S13":{"ecom":"AE_AUH-S13","rocket":null,"area":"Um Laylah","lat":24.0,"lng":54.1},
+  "AE_AUH-S5":{"ecom":"AE_AUH-S5","rocket":null,"area":"U35","lat":24.0,"lng":54.8},
+  "AE_AAN-S4":{"ecom":"AE_AAN-S4","rocket":null,"area":"Mghayel Bin Omeir","lat":24.0,"lng":54.9},
+  "AE_AAN-S3":{"ecom":"AE_AAN-S3","rocket":null,"area":"Lubnan","lat":24.0,"lng":55.1},
+  "AE_AAN-S2":{"ecom":"AE_AAN-S2","rocket":null,"area":"Um Ghaffa","lat":24.1,"lng":55.9},
+  "AE_AUH-S4":{"ecom":"AE_AUH-S4","rocket":null,"area":"Mafraq Industrial Area","lat":24.3,"lng":54.6},
+  "AE_AUH-S7":{"ecom":"AE_AUH-S7","rocket":null,"area":"Al Haffar","lat":24.3,"lng":54.8},
+  "AE_AAN-S1":{"ecom":"AE_AAN-S1","rocket":null,"area":"Al Ain, Abu Dhabi","lat":24.3,"lng":55.5},
+  "AE_AUH-S1":{"ecom":"AE_AUH-S1","rocket":"W00835102AE","area":"Al Hudayriat Island","lat":24.4,"lng":54.4},
+  "AE_AUH-S17":{"ecom":"AE_AUH-S17","rocket":"W00835102AE","area":"MQ6","lat":24.4,"lng":54.5},
+  "AE_AUH-S6":{"ecom":"AE_AUH-S6","rocket":null,"area":"MZ28","lat":24.4,"lng":54.6},
+  "AE_AUH-S8":{"ecom":"AE_AUH-S8","rocket":null,"area":"Abu Dhabi","lat":24.4,"lng":54.9},
+  "AE_AUH-S2":{"ecom":"AE_AUH-S2","rocket":"W00835102AE","area":"RT4","lat":24.5,"lng":54.4},
+  "AE_DXB-S4":{"ecom":"AE_DXB-S4","rocket":null,"area":"Community Hefair","lat":24.7,"lng":55.2},
+  "AE_DXB-S14":{"ecom":"AE_DXB-S14","rocket":"W00068765A","area":"Dubai","lat":24.7,"lng":56.3}
+};
+
+// ── EMBEDDED CATEGORY DATA (from constants/noon_category.py) ──
+const CATEGORY_COUNT = 53;
+const CATEGORY_GROUPS = {
+  "Electronics & Mobiles": 16,
+  "Home & Kitchen": 10,
+  "Fashion": 9,
+  "Beauty & Fragrance": 6,
+  "Baby": 6,
+  "Toys": 6,
+  "Sports & Outdoors": 5,
+  "Grocery": 5,
+  "Health & Nutrition": 3,
+  "Books & Media": 3,
+  "Automotive": 3,
+  "Office & Stationery": 2
+};
+
+async function loadData() {
+  const app = document.getElementById('app');
+  let state = null;
+
+  try {
+    const resp = await fetch('./state.json');
+    state = await resp.json();
+  } catch (e) {
+    // Use fallback embedded data
+    state = {"visited":["hajj-health-essentials"],"queue":[],"total":10399,"batch_index":2};
+  }
+
+  // Normalize keys (state.json has "done"/"visited" depending on scraper version)
+  const visited = state.done || state.visited || [];
+  const queued  = state.queued || state.queue || [];
+  const total   = state.total || 0;
+  const batchIdx= state.batch_index || state.batchIndex || 1;
+
+  const whKeys = Object.keys(WAREHOUSES);
+  const rocketZones = whKeys.filter(k => WAREHOUSES[k].rocket);
+  const totalCats = visited.length + queued.length;
+  const pct = totalCats > 0 ? Math.round((visited.length / totalCats) * 100) : 0;
+
+  app.innerHTML = `
+    <!-- METRIC CARDS -->
+    <div class="cards">
+      <div class="card purple animate">
+        <span class="icon">📦</span>
+        <div class="label">Total Products Scraped</div>
+        <div class="value">${total.toLocaleString()}</div>
+        <div class="sub">${batchIdx} batch file(s) generated</div>
+      </div>
+      <div class="card green animate">
+        <span class="icon">✅</span>
+        <div class="label">Categories Visited</div>
+        <div class="value">${visited.length.toLocaleString()}</div>
+        <div class="sub">of ${totalCats.toLocaleString()} discovered</div>
+      </div>
+      <div class="card amber animate">
+        <span class="icon">⏳</span>
+        <div class="label">Categories Queued</div>
+        <div class="value">${queued.length.toLocaleString()}</div>
+        <div class="sub">${pct}% crawl complete</div>
+      </div>
+      <div class="card cyan animate">
+        <span class="icon">🏭</span>
+        <div class="label">Warehouse Zones</div>
+        <div class="value">${whKeys.length}</div>
+        <div class="sub">${rocketZones.length} with Rocket delivery</div>
+      </div>
+      <div class="card rose animate">
+        <span class="icon">📂</span>
+        <div class="label">Pre-mapped Categories</div>
+        <div class="value">${CATEGORY_COUNT}</div>
+        <div class="sub">Across ${Object.keys(CATEGORY_GROUPS).length} departments</div>
+      </div>
+    </div>
+
+    <!-- CRAWL PROGRESS -->
+    <div class="section animate">
+      <h2><span>📊</span> Crawl Progress</h2>
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,var(--accent),var(--green))"></div>
+        </div>
+        <div class="progress-labels">
+          <span>${visited.length} visited</span>
+          <span>${pct}%</span>
+          <span>${queued.length} remaining</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WAREHOUSE TABLE -->
+    <div class="section animate">
+      <h2><span>🗺️</span> UAE Warehouse / Delivery Zones</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Zone Code</th><th>Area</th><th>Lat</th><th>Lng</th><th>Rocket</th></tr></thead>
+          <tbody>
+            ${whKeys.map(k => {
+              const w = WAREHOUSES[k];
+              return `<tr>
+                <td style="font-weight:600;color:var(--accent2)">${w.ecom}</td>
+                <td>${w.area || '—'}</td>
+                <td>${w.lat}</td>
+                <td>${w.lng}</td>
+                <td>${w.rocket ? `<span class="badge badge-green">🚀 ${w.rocket}</span>` : '<span class="badge badge-dim">—</span>'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORY GROUPS -->
+    <div class="section animate">
+      <h2><span>🗂️</span> Pre-mapped Category Breakdown</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Department</th><th>Categories</th><th>Share</th></tr></thead>
+          <tbody>
+            ${Object.entries(CATEGORY_GROUPS).map(([name, count]) => {
+              const share = Math.round((count / CATEGORY_COUNT) * 100);
+              return `<tr>
+                <td style="font-weight:600">${name}</td>
+                <td>${count}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:.5rem">
+                    <div style="width:${share * 2}px;height:6px;border-radius:3px;background:var(--accent);opacity:.7"></div>
+                    <span style="color:var(--dim);font-size:.72rem">${share}%</span>
+                  </div>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VISITED CATEGORIES -->
+    <div class="section animate">
+      <h2><span>✅</span> Visited Categories (${visited.length})</h2>
+      ${visited.length ? `<div class="chips">${visited.map(c => `<span class="chip done">${c}</span>`).join('')}</div>` : '<div class="empty">No categories visited yet</div>'}
+    </div>
+
+    <!-- QUEUED CATEGORIES -->
+    <div class="section animate">
+      <h2><span>⏳</span> Queued Categories (${queued.length})</h2>
+      ${queued.length ? `<div class="chips">${queued.map(c => `<span class="chip">${c}</span>`).join('')}</div>` : '<div class="empty">Queue is empty — crawl complete!</div>'}
+    </div>
+  `;
+}
+
+loadData();
+</script>
+</body>
+</html>
