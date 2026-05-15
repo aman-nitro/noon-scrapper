@@ -1,8 +1,11 @@
 import asyncio
-import aiohttp
-import aiofiles
 import json
 import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Import ProxyClient and dependencies
+from proxy.proxy_client import ProxyClient, ProxyHTTPError
 
 BASE_URL = "https://www.noon.com/_vs/nc/mp-customer-catalog-api/api/v3/u/"
 START_CAT = "hajj-health-essentials"
@@ -87,18 +90,19 @@ class NoonScraper:
         for child in node.get("children", []):
             self._walk(child, out)
 
-    def fetch_page(self, session, cat, page):
-        import requests
+    async def fetch_page(self, proxy_client, cat, page):
+        url = BASE_URL + cat
         try:
-            r = requests.get(
-                BASE_URL + cat,
+            response = await proxy_client.get(
+                url,
                 headers=HEADERS,
                 params={"page": page, "limit": PAGE_LIMIT},
-                timeout=20
             )
-            print(f"[HTTP {r.status_code}] {cat} page={page}")
-            if r.status_code == 200:
-                return r.json()
+            print(f"[HTTP {response.status_code}] {cat} page={page}")
+            if response.status_code == 200:
+                return response.json()
+        except ProxyHTTPError as e:
+            print(f"[PROXY ERROR] {cat} page={page} → {type(e).__name__}: {e}")
         except Exception as e:
             print(f"[ERROR] {cat} page={page} → {type(e).__name__}: {e}")
         return None
@@ -113,14 +117,15 @@ class NoonScraper:
             print(f"[BATCH] Wrote {len(chunk)} products → {filename}")
             self.batch_index += 1
 
-    def process_category(self, cat, queue):
+
+    async def process_category(self, proxy_client, cat, queue):
         if cat in self.done:
             print(f"[SKIP] {cat}")
             return
-        
+
         print(f'CATEGORY:-{cat}')
 
-        data = self.fetch_page(None, cat, 1)
+        data = await self.fetch_page(proxy_client, cat, 1)
         if data is None:
             return
 
@@ -136,7 +141,7 @@ class NoonScraper:
             print(f'Processing page number: {page}')
             import time
             time.sleep(DELAY)
-            result = self.fetch_page(None, cat, page)
+            result = await self.fetch_page(proxy_client, cat, page)
             if result:
                 all_hits.extend(result.get("hits", []))
 
@@ -155,19 +160,22 @@ class NoonScraper:
         self.batch_buffer.extend(all_hits)
         self.flush_batch()
 
-    def run(self):
+
+    async def run(self):
         queue = list(self.state["queued"])
         if not queue:
             queue = [START_CAT]
 
         print(f"Starting — queue={len(queue)}  done={len(self.done)}  saved={self.total}")
 
+        proxy_client = ProxyClient()
+
         try:
             while queue:
                 cat = queue.pop(0)
                 if cat in self.done:
                     continue
-                self.process_category(cat, queue)
+                await self.process_category(proxy_client, cat, queue)
                 self.save_state(queue)
                 import time
                 time.sleep(DELAY)
@@ -182,4 +190,4 @@ class NoonScraper:
 
 
 if __name__ == "__main__":
-    NoonScraper().run()
+    asyncio.run(NoonScraper().run())
