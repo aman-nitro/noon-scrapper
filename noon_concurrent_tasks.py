@@ -164,10 +164,66 @@ class NoonScraper:
         return os.path.join(OUTPUT_DIR, f"cat_{safe}.jsonl")
 
     def load_state(self):
-        if os.path.exists(STATE_FILE):
-            with open(STATE_FILE) as f:
-                return json.load(f)
-        return {"visited": [], "queue": [START_CAT], "total": 0, "batch_index": 1}
+        """
+            Supports BOTH formats:
+
+            OLD:
+            {
+                "done": [...],
+                "queued": [...],
+                "total": 123,
+                "batch_index": 1
+            }
+
+            NEW:
+            {
+                "visited": [...],
+                "queue": [...],
+                "total": 123,
+                "batch_index": 1
+            }
+        """
+
+        if not os.path.exists(STATE_FILE):
+            return {
+            "visited": [],
+            "queue": [START_CAT],
+            "total": 0,
+            "batch_index": 1,
+            }
+
+        try:
+            with open(STATE_FILE, "r") as f:
+                data = json.load(f)
+
+            # ── OLD FORMAT SUPPORT ─────────────────────────
+            if "done" in data or "queued" in data:
+                print("[STATE] Detected OLD state.json format")
+
+                return {
+                    "visited": data.get("done", []),
+                    "queue": data.get("queued", []),
+                    "total": data.get("total", 0),
+                    "batch_index": data.get("batch_index", 1),
+                }
+
+            # ── NEW FORMAT ────────────────────────────────
+            return {
+                "visited": data.get("visited", []),
+                "queue": data.get("queue", [START_CAT]),
+                "total": data.get("total", 0),
+                "batch_index": data.get("batch_index", 1),
+            }
+
+        except Exception as e:
+            print(f"[STATE ERROR] Failed to load state.json: {e}")
+
+        return {
+                "visited": [],
+                "queue": [START_CAT],
+                "total": 0,
+                "batch_index": 1,
+            }
 
     async def save_state(self, queue_snapshot):
         async with aiofiles.open(STATE_FILE, "w") as f:
