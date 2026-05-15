@@ -1,3 +1,5 @@
+#THIS will scrap the product catalog of noon.com starting from a given category, and save results in batches of 10k products.
+#This will be running concurrently with multiple tasks to speed up the process, while respecting a delay between requests to avoid overwhelming the server.
 import asyncio
 import aiohttp
 import aiofiles

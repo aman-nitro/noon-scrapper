@@ -1,3 +1,5 @@
+#This script scrapes the product catalog of noon.com starting from a given category, and saves results in batches of 10k products.
+#It doesn't run concurrenly, but it can be easily modified to do so by using asyncio and aiohttp for making requests, and aiofiles for writing output files asynchronously.
 import requests
 import json
 import time
