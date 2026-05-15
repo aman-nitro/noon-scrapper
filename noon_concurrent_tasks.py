@@ -1,25 +1,3 @@
-# THIS will scrape the product catalog of noon.com starting from a given category,
-# and save results in batches of 10k products.
-#
-# UPDATED FIXES:
-#   ✅ Proper state loading indentation bug fixed
-#   ✅ 407 proxy auth/connect failures handled correctly
-#   ✅ Bad proxies temporarily cooled down
-#   ✅ Metrics now accurate
-#   ✅ Category success/failure tracking fixed
-#   ✅ Graceful cancellation
-#   ✅ Avoids creating excessive curl sessions
-#   ✅ Better retry handling
-#   ✅ Queue persistence fixed
-#
-# PROXY INTEGRATION:
-#   Uses ProxyClient/ProxyManager system for:
-#   - automatic proxy rotation
-#   - retry logic
-#   - cooldowns
-#   - DNS caching
-#   - browser impersonation
-
 import asyncio
 import aiofiles
 import json
@@ -55,7 +33,7 @@ PAGE_FETCH_DELAY = 0.2
 MAX_CATEGORY_RETRIES = 3
 HEALTH_LOG_INTERVAL = 30
 
-COOKIE = "YOUR_COOKIE"
+# COOKIE = "YOUR_COOKIE"
 
 HEADERS = {
     "accept": "application/json, text/plain, */*",
@@ -78,7 +56,7 @@ HEADERS = {
     "x-cms": "v2",
     "x-content": "desktop",
     "x-ecom-zonecode": "AE_DXB-S14",
-    "Cookie": COOKIE,
+    # "Cookie": COOKIE,
 }
 
 
@@ -276,6 +254,7 @@ class NoonScraper:
                     "limit": PAGE_LIMIT,
                 }
             )
+            print(f"[HTTP {response.status_code}] {cat} page={page}")
 
             if response.status_code == 200:
 
@@ -283,7 +262,6 @@ class NoonScraper:
 
                 return response.json()
 
-            print(f"[HTTP {response.status_code}] {cat} page={page}")
 
             self.stats["pages_failed"] += 1
 
