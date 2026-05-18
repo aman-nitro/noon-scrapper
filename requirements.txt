@@ -8,4 +8,5 @@ asyncpg
 sqlalchemy
 pytz>=2024.1
 redis==5.0.1
+APScheduler==3.11.2
 alembic
