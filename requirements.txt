@@ -1,0 +1,11 @@
+fastapi[standard]
+psycopg2-binary
+psycopg[binary]
+loguru
+sse_starlette
+debugpy
+asyncpg
+sqlalchemy
+pytz>=2024.1
+redis==5.0.1
+alembic

@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.1-pg18-trixie
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5    
+  
+  noon_pg:
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: assistant_pg
+    ports:
+      - "5436:5432"
+    volumes:
+      - noon_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  noon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "16000:16000"
+      # - "15000:15000"
+      # - "5379:5379"
+    volumes:
+      - .:/app
+    entrypoint: /app/bin/entrypoint.sh
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      assistant_pg:
+        condition: service_healthy
+  
+  redis:
+    image: redis:7
+    container_name: redis_server
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: always
+
+volumes:
+  postgres_data:
+  noon_pg_data:
+  redis_data:
