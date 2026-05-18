@@ -6,6 +6,8 @@ import sys
 import time
 import random
 from typing import Optional
+import psutil
+import tracemalloc
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
@@ -140,6 +142,16 @@ class NoonScraper:
             "pages_failed": 0,
             "start_time": time.time(),
         }
+
+        # Memory tracking
+        self.process = psutil.Process(os.getpid())
+        self.memory_stats = {
+            "peak_rss_mb": 0,  # Peak RSS (resident set size)
+            "peak_vms_mb": 0,  # Peak virtual memory size
+            "current_rss_mb": 0,
+            "current_vms_mb": 0,
+        }
+        tracemalloc.start()  # Start Python memory tracking
 
         self.proxy_manager, self.proxy_count = build_proxy_manager()
 
@@ -452,11 +464,31 @@ class NoonScraper:
 
     # ───────────────────────── HEALTH ─────────────────────────
 
+    def update_memory_stats(self):
+        """Update current memory statistics and track peak values."""
+        try:
+            mem_info = self.process.memory_info()
+            current_rss_mb = mem_info.rss / (1024 * 1024)
+            current_vms_mb = mem_info.vms / (1024 * 1024)
+
+            self.memory_stats["current_rss_mb"] = current_rss_mb
+            self.memory_stats["current_vms_mb"] = current_vms_mb
+
+            # Track peak values
+            if current_rss_mb > self.memory_stats["peak_rss_mb"]:
+                self.memory_stats["peak_rss_mb"] = current_rss_mb
+            if current_vms_mb > self.memory_stats["peak_vms_mb"]:
+                self.memory_stats["peak_vms_mb"] = current_vms_mb
+        except Exception as e:
+            print(f"[MEMORY ERROR] {e}")
+
     async def health_monitor(self):
 
         while True:
 
             await asyncio.sleep(HEALTH_LOG_INTERVAL)
+
+            self.update_memory_stats()
 
             elapsed = time.time() - self.stats["start_time"]
 
@@ -473,7 +505,9 @@ class NoonScraper:
                 f"done={self.stats['categories_done']} "
                 f"failed={self.stats['categories_failed']} "
                 f"pages_ok={self.stats['pages_fetched']} "
-                f"pages_fail={self.stats['pages_failed']}"
+                f"pages_fail={self.stats['pages_failed']} "
+                f"RAM={self.memory_stats['current_rss_mb']:.1f}MB "
+                f"(peak: {self.memory_stats['peak_rss_mb']:.1f}MB)"
             )
 
     # ───────────────────────── RUN ─────────────────────────
@@ -543,6 +577,11 @@ class NoonScraper:
 
             await self.proxy_client.close_all_sessions()
 
+            # Final memory update
+            self.update_memory_stats()
+            current_memory_mb, peak_memory_mb = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+
             elapsed = (
                 time.time()
                 - self.stats["start_time"]
@@ -561,6 +600,11 @@ class NoonScraper:
             print(f"pages_ok={self.stats['pages_fetched']}")
             print(f"pages_fail={self.stats['pages_failed']}")
             print(f"rate={rate:.0f}/s")
+            print("\n──── MEMORY METRICS ────")
+            print(f"Peak RSS Memory: {self.memory_stats['peak_rss_mb']:.1f} MB")
+            print(f"Current RSS Memory: {self.memory_stats['current_rss_mb']:.1f} MB")
+            print(f"Peak Virtual Memory: {self.memory_stats['peak_vms_mb']:.1f} MB")
+            print(f"Python Tracemalloc Peak: {peak_memory_mb / (1024*1024):.1f} MB")
             print("══════════════════════════════")
 
 

@@ -18,7 +18,7 @@ class NoonFullCountryMapper:
         self.lock = threading.Lock()
         self.discovered_zones = {}
         self.processed_boxes = []
-        self.min_box_size = 0.05  # ~5km resolution for final borders
+        self.min_box_size = 0.01  # ~5km resolution for final borders
         
         # Shared ThreadPool to prevent recursive overhead
         self.executor = ThreadPoolExecutor(max_workers=10)
