@@ -12,6 +12,6 @@ app = FastAPI(
 app.include_router(product.router, prefix='/api', tags=['product'])
 
 
-@app.get('/health')
+@app.get('/')
 async def noon_health():
     return {"status": "Noon service is running"}
