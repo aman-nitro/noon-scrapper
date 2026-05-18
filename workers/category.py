@@ -2,7 +2,7 @@ import asyncio
 from loguru import logger
 
 import utils.dramatiq
-from scrappers.category import NoonCategoryScrapper
+from scrappers.category import NoonCategoryScraper
 from controllers.brand import NoonBrandService
 from utils.db import SessionLocal
 
@@ -14,18 +14,18 @@ def scrape_noon_categories():
 
 
 async def run_scraper():
-    scraper = NoonCategoryScrapper()
+    scraper = NoonCategoryScraper()
     try:
-        brands = await scraper.fetch_all_brands()
-        logger.info(f"Total brands fetched are: {len(brands)}")
-        unique_brands = scraper.deduplicate(brands)
+        categories = await scraper.scrape()
+        logger.info(categories)
+        logger.info(f"Total categ fetched are: {len(categories)}")
+        logger.info(f"Categories scrapped: {categories}")
 
-        db = SessionLocal()
+        # db = SessionLocal()
 
         try:
-            for brand in unique_brands:
-                logger.info(f'Adding {brand} in the database')
-                await NoonBrandService.create(db, name=brand)
+            pass
+            
 
         except Exception as err:
             logger.exception(f'Error occurred while creating entry in database')
