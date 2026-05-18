@@ -7,7 +7,6 @@ from controllers.brand import NoonBrandService
 from utils.db import SessionLocal
 
 
-
 # @dramatiq.actor(max_retries=3)
 def scrape_noon_brands():
     logger.info("Brand scrapping is started....")
@@ -26,6 +25,7 @@ async def run_scraper():
             for brand in unique_brands:
                 name = brand.get("code", {}).get("name")
                 if name:
+                    logger.info(f'Adding {name} in the database')
                     NoonBrandService.create(db, name=name)
 
             db.commit()
