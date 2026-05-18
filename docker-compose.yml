@@ -23,7 +23,7 @@ services:
       - "16000:16000"
       # - "5679:5679"
     volumes:
-      - .:/app
+      - .:/apps
     entrypoint: /app/bin/entrypoint.sh
     env_file:
       - .env
