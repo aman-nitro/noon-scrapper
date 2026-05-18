@@ -17,6 +17,7 @@ async def run_scraper():
     scraper = NoonBrandScraper()
     try:
         brands = await scraper.fetch_all_brands()
+        logger.info(f"Total brands fetched are: {len(brands)}")
         unique_brands = scraper.deduplicate(brands)
 
         db = SessionLocal()
