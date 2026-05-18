@@ -12,3 +12,9 @@ run:
 
 logs:
 	docker compose logs -f
+
+bash:
+	docker exec -it noon-scrapper-noon-1 bash
+
+psql: 
+	docker exec -it noon-scrapper-noon_pg-1  psql -U postgres

@@ -111,7 +111,7 @@ def build_proxy_manager():
 # ───────────────────────── SCRAPER ─────────────────────────
 
 
-class NoonScraper:
+class NoonProductScraper:
 
     def __init__(self):
 

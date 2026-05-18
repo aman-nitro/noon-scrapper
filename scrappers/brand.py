@@ -1,26 +1,13 @@
 import asyncio
-import csv
-import json
-import os
-import sys
 import time
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from proxy.proxy_client import ProxyClient, ProxyHTTPError
 from proxy.proxy_manager import ProxyManager, ProxyConfig, InMemoryStorage
 from proxy.proxies import proxy_urls
+from constants import NOON_BASE_URL
 
-# ───────────────────────── CONFIG ─────────────────────────
-
-BASE_URL = (
-    "https://www.noon.com/_vs/nc/mp-customer-catalog-api"
-    "/api/v3/u/brands/paginated/category/"
-)
-
+NOON_BRAND_ENDPOINT = NOON_BASE_URL +  "/brands/paginated/category/"
 LIMIT = 1000
-OUTPUT_CSV = "noon_brands.csv"
-OUTPUT_JSON = "noon_brands.json"
 
 HEADERS = {
     "accept": "application/json, text/plain, */*",
@@ -40,13 +27,9 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/148.0.0.0 Safari/537.36"
     ),
-    "x-ecom-zonecode": "AE_DXB-S14",
-    # Uncomment and set your cookie when needed:
-    # "Cookie": "YOUR_COOKIE_HERE",
+    "x-ecom-zonecode": "AE_DXB-S14" # This will be dynamic
 }
 
-
-# ───────────────────────── PROXY SETUP ─────────────────────────
 
 
 def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
@@ -88,22 +71,15 @@ def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
     return manager, client, loaded
 
 
-# ───────────────────────── SCRAPER ─────────────────────────
-
-
 class NoonBrandScraper:
 
     def __init__(self):
-        self.proxy_manager, self.proxy_client, self.proxy_count = (
-            build_proxy_manager()
-        )
+        self.proxy_manager, self.proxy_client, self.proxy_count = build_proxy_manager()
         self.stats = {
             "pages_fetched": 0,
             "pages_failed": 0,
             "start_time": time.time(),
         }
-
-    # ───────────────────────── FETCH ─────────────────────────
 
     async def fetch_page(self, page: int) -> dict | None:
         params = {
@@ -111,9 +87,8 @@ class NoonBrandScraper:
             "b[limit]": LIMIT,
         }
         try:
-            print('AMAN:- RESPONSE IS')
             response = await self.proxy_client.get(
-                BASE_URL,
+                NOON_BRAND_ENDPOINT,
                 headers=HEADERS,
                 params=params,
             )
@@ -139,8 +114,6 @@ class NoonBrandScraper:
             print(f"[ERROR] page={page} → {e}")
             self.stats["pages_failed"] += 1
             return None
-
-    # ───────────────────────── COLLECT ─────────────────────────
 
     async def fetch_all_brands(self) -> list[dict]:
         all_brands: list[dict] = []
@@ -179,7 +152,6 @@ class NoonBrandScraper:
 
         return all_brands
 
-    # ───────────────────────── DEDUP ─────────────────────────
 
     @staticmethod
     def deduplicate(brands: list[dict]) -> list[dict]:
@@ -191,61 +163,3 @@ class NoonBrandScraper:
                 seen.add(key)
                 unique.append(brand)
         return unique
-
-    # ───────────────────────── SAVE ─────────────────────────
-
-    @staticmethod
-    def save_json(brands: list[dict], path: str) -> None:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(brands, f, ensure_ascii=False, indent=2)
-        print(f"[SAVE] JSON → {path}")
-
-    @staticmethod
-    def save_csv(brands: list[dict], path: str) -> None:
-        if not brands:
-            print("[SAVE] No brands to write to CSV.")
-            return
-
-        # Collect all keys across all brand dicts for dynamic columns
-        fieldnames = list(
-            dict.fromkeys(k for brand in brands for k in brand.keys())
-        )
-
-        with open(path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
-            writer.writeheader()
-            writer.writerows(brands)
-
-        print(f"[SAVE] CSV  → {path}")
-
-    # ───────────────────────── RUN ─────────────────────────
-
-    async def run(self) -> None:
-        try:
-            raw_brands = await self.fetch_all_brands()
-            unique_brands = self.deduplicate(raw_brands)
-
-            print(f"\nTotal unique brands: {len(unique_brands)}")
-
-            self.save_json(unique_brands, OUTPUT_JSON)
-            # self.save_csv(unique_brands, OUTPUT_CSV)
-
-        finally:
-            await self.proxy_client.close_all_sessions()
-
-            elapsed = time.time() - self.stats["start_time"]
-            print("\n══════════════════════════════")
-            print("BRAND FETCH COMPLETE")
-            print(f"pages_ok={self.stats['pages_fetched']}")
-            print(f"pages_fail={self.stats['pages_failed']}")
-            print(f"elapsed={elapsed:.1f}s")
-            print("══════════════════════════════")
-
-
-# ───────────────────────── ENTRY ─────────────────────────
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(NoonBrandScraper().run())
-    except KeyboardInterrupt:
-        print("\n[INTERRUPTED]")

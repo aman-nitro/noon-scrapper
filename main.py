@@ -1,33 +1,24 @@
-from contextlib import asynccontextmanager
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from loguru import logger
 from fastapi import FastAPI
-from api import product
-
-scheduler = AsyncIOScheduler()
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Application started successfully")
-    #$scheduler.add_job("", trigger="interval", minutes=5, max_instances=1)
-    #scheduler.start()
-    logger.info("Scheduler started")
-
-    yield
-    scheduler.shutdown()
-    logger.info("Scheduler stopped!!")
+from fastapi.middleware.cors import CORSMiddleware
+from api import brand
+import utils.dramatiq
 
 
 app = FastAPI(
     title="Noon Scrapper",
     description="Noon scrapper service that scrappes product, category, brands, store, etc.",
     version='1.0.1',
-    lifespan=lifespan
     )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-app.include_router(product.router, prefix='/api', tags=['product'])
+app.include_router(brand.router, prefix='/api', tags=['brand'])
 
 
 @app.get('/')

@@ -1,7 +1,14 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import APIRouter, HTTPException
+from loguru import logger
 
 
 
-router = APIRouter()
+router = APIRouter(prefix='/product')
+
+
+
+@router.get('/run_scrapper')
+async def run_scrapper():
+    return HTTPException(status_code=200, detail="Noon-Product Scrapping started succesfully!")
 
 
