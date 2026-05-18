@@ -8,7 +8,7 @@ class NoonBrand(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(Text,nullable=False)
     createdAt = Column(DateTime,nullable=False,server_default=func.now())
-    updatedAt = Column(DateTime,nullable=False)
+    updatedAt = Column(DateTime,nullable=False, server_default=func.now())
 
     def __repr__(self):
         return (

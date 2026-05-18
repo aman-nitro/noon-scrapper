@@ -1,48 +1,58 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from models.brand import NoonBrand
 
 
 class NoonBrandService:
 
     @staticmethod
-    def create(db: Session, name: str):
+    async def create(db: AsyncSession, name: str):
         brand = NoonBrand(name=name)
 
         db.add(brand)
-        db.commit()
-        db.refresh(brand)
-
+        await db.commit()
+        await db.refresh(brand)
         return brand
 
     @staticmethod
-    def get_by_id(db: Session, brand_id: int):
-        return db.query(NoonBrand).filter(NoonBrand.id == brand_id).first()
+    async def get_by_id(db: AsyncSession, brand_id: int):
+        result = await db.execute(
+            select(NoonBrand).where(NoonBrand.id == brand_id)
+        )
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def get_all(db: Session):
-        return db.query(NoonBrand).all()
+    async def get_all(db: AsyncSession):
+        result = await db.execute(select(NoonBrand))
+        return result.scalars().all()
 
     @staticmethod
-    def update(db: Session, brand_id: int, name: str):
-        brand = db.query(NoonBrand).filter(NoonBrand.id == brand_id).first()
+    async def update(db: AsyncSession, brand_id: int, name: str):
+        result = await db.execute(
+            select(NoonBrand).where(NoonBrand.id == brand_id)
+        )
+        brand = result.scalar_one_or_none()
 
         if not brand:
             return None
 
         brand.name = name
-        db.commit()
-        db.refresh(brand)
+        await db.commit()
+        await db.refresh(brand)
 
         return brand
 
     @staticmethod
-    def delete(db: Session, brand_id: int):
-        brand = db.query(NoonBrand).filter(NoonBrand.id == brand_id).first()
+    async def delete(db: AsyncSession, brand_id: int):
+        result = await db.execute(
+            select(NoonBrand).where(NoonBrand.id == brand_id)
+        )
+        brand = result.scalar_one_or_none()
 
         if not brand:
             return False
 
-        db.delete(brand)
-        db.commit()
+        await db.delete(brand)
+        await db.commit()
 
         return True

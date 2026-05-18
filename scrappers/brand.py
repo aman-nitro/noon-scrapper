@@ -158,8 +158,8 @@ class NoonBrandScraper:
         seen: set[str] = set()
         unique: list[dict] = []
         for brand in brands:
-            key = brand.get("code").get('name')
+            key = brand.get('name')
             if key not in seen:
                 seen.add(key)
-                unique.append(brand)
+                unique.append(key)
         return unique

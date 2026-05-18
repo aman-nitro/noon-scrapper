@@ -24,15 +24,11 @@ async def run_scraper():
 
         try:
             for brand in unique_brands:
-                name = brand.get("code", {}).get("name")
-                if name:
-                    logger.info(f'Adding {name} in the database')
-                    NoonBrandService.create(db, name=name)
+                logger.info(f'Adding {brand} in the database')
+                await NoonBrandService.create(db, name=brand)
 
-            db.commit()
-
-        finally:
-            db.close()
+        except Exception as err:
+            logger.exception(f'Error occurred while creating entry in database')
 
     finally:
         await scraper.proxy_client.close_all_sessions()
