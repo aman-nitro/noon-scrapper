@@ -21,9 +21,9 @@ services:
       dockerfile: Dockerfile
     ports:
       - "16000:16000"
-      # - "5679:5679"
+      - "5679:5679"
     volumes:
-      - .:/apps
+      - .:/app
     entrypoint: /app/bin/entrypoint.sh
     env_file:
       - .env
