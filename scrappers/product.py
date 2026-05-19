@@ -1,5 +1,7 @@
 import asyncio
 
+from loguru import logger
+
 from proxy.proxy_client import ProxyClient
 from proxy.proxy_manager import ProxyManager, ProxyConfig, InMemoryStorage
 from proxy.proxies import proxy_urls
@@ -56,32 +58,33 @@ def build_proxy_manager():
             all_proxy_urls.extend(urls)
 
     loaded = manager.load_proxies_from_url_list(all_proxy_urls)
-    print(f"[PROXY] Loaded {loaded} proxies")
+    logger.info(f"[PROXY] Loaded {loaded} proxies")
 
     return manager
 
 
 class NoonProductScraper:
 
-    def __init__(self):
+    def __init__(self, ecom_node: str = "AE_DXB-S14"):
         proxy_manager = build_proxy_manager()
-        self.proxy_client = ProxyClient(
-            config=proxy_manager.config,
-            proxy_manager=proxy_manager,
-        )
+        self.proxy_client = ProxyClient(config=proxy_manager.config,proxy_manager=proxy_manager)
+        self.ecom_node = ecom_node
 
     async def fetch_page(self, category: str, page: int) -> dict | None:
         url = f"{NOON_BASE_URL}/{category}"
         try:
+            HEADERS["x-ecom-zonecode"] = self.ecom_node
             response = await self.proxy_client.get(
                 url,
                 headers=HEADERS,
                 params={"page": page, "limit": PAGE_LIMIT},
             )
+            logger.info(f"[HTTP {response.status_code}]")
             if response.status_code == 200:
                 return response.json()
             return None
-        except Exception:
+        except Exception as e:
+            logger.error(f"[ERROR] {e}")
             return None
 
     async def scrape_category(self, category: str) -> list[dict]:

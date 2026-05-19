@@ -1,5 +1,6 @@
 import asyncio
 import time
+from loguru import logger
 
 from proxy.proxy_client import ProxyClient, ProxyHTTPError
 from proxy.proxy_manager import ProxyManager, ProxyConfig, InMemoryStorage
@@ -61,7 +62,7 @@ def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
             all_proxy_urls.extend(urls)
 
     loaded = manager.load_proxies_from_url_list(all_proxy_urls)
-    print(f"[PROXY] Loaded {loaded} proxies")
+    logger.info(f"[PROXY] Loaded {loaded} proxies")
 
     client = ProxyClient(
         config=manager.config,
@@ -73,7 +74,8 @@ def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
 
 class NoonBrandScraper:
 
-    def __init__(self):
+    def __init__(self, ecom_node: str = "AE_DXB-S14"):
+        self.ecom_node = ecom_node
         self.proxy_manager, self.proxy_client, self.proxy_count = build_proxy_manager()
         self.stats = {
             "pages_fetched": 0,
@@ -87,12 +89,13 @@ class NoonBrandScraper:
             "b[limit]": LIMIT,
         }
         try:
+            HEADERS["x-ecom-zonecode"] = self.ecom_node
             response = await self.proxy_client.get(
                 NOON_BRAND_ENDPOINT,
                 headers=HEADERS,
                 params=params,
             )
-            print(f"[HTTP {response.status_code}] page={page}")
+            logger.info(f"[HTTP {response.status_code}] page={page}")
 
             if response.status_code == 200:
                 self.stats["pages_fetched"] += 1
@@ -104,14 +107,14 @@ class NoonBrandScraper:
         except ProxyHTTPError as e:
             msg = str(e)
             if "407" in msg:
-                print(f"[PROXY AUTH ERROR] page={page}")
+                logger.error(f"[PROXY AUTH ERROR] page={page}")
             else:
-                print(f"[PROXY ERROR] page={page} → {e}")
+                logger.error(f"[PROXY ERROR] page={page} → {e}")
             self.stats["pages_failed"] += 1
             return None
 
         except Exception as e:
-            print(f"[ERROR] page={page} → {e}")
+            logger.error(f"[ERROR] page={page} → {e}")
             self.stats["pages_failed"] += 1
             return None
 
@@ -119,15 +122,15 @@ class NoonBrandScraper:
         all_brands: list[dict] = []
         page = 1
 
-        print("Starting brand fetch...")
+        logger.info("Starting brand fetch...")
 
         while True:
-            print(f"  Fetching page {page}...", end=" ", flush=True)
+            logger.info(f"  Fetching page {page}...", end=" ", flush=True)
 
             data = await self.fetch_page(page)
 
             if data is None:
-                print("FAILED — stopping early.")
+                logger.error("FAILED — stopping early.")
                 break
 
             brands_on_page = (
@@ -137,14 +140,14 @@ class NoonBrandScraper:
             )
 
             all_brands.extend(brands_on_page)
-            print(
+            logger.info(
                 f"got {len(brands_on_page)} brands "
                 f"(total so far: {len(all_brands)})"
             )
 
             is_last = data.get("brandFilters", {}).get("lastPage", True)
             if is_last:
-                print("Reached last page.")
+                logger.info("Reached last page.")
                 break
 
             page += 1

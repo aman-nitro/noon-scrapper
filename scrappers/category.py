@@ -1,5 +1,5 @@
-import asyncio
-import time
+from loguru import logger
+
 from proxy.proxy_client import ProxyClient, ProxyHTTPError
 from proxy.proxy_manager import ProxyManager, ProxyConfig, InMemoryStorage
 from proxy.proxies import proxy_urls
@@ -51,7 +51,7 @@ def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
             all_proxy_urls.extend(urls)
 
     loaded = manager.load_proxies_from_url_list(all_proxy_urls)
-    print(f"[PROXY] Loaded {loaded} proxies")
+    logger.info(f"[PROXY] Loaded {loaded} proxies")
 
     client = ProxyClient(config=manager.config, proxy_manager=manager)
     return manager, client, loaded
@@ -59,26 +59,27 @@ def build_proxy_manager() -> tuple[ProxyManager, ProxyClient, int]:
 
 class NoonCategoryScraper:
 
-    def __init__(self):
+    def __init__(self, ecom_node: str = "AE_DXB-S14"):
         self.proxy_manager, self.proxy_client, self.proxy_count = build_proxy_manager()
+        self.ecom_node = ecom_node
 
     async def fetch_categories(self) -> list[dict] | None:
         try:
             response = await self.proxy_client.get(NOON_CATEGORY_ENDPOINT, headers=HEADERS)
-            print(f"[HTTP {response.status_code}]")
+            logger.info(f"[HTTP {response.status_code}]")
 
             if response.status_code == 200:
                 return response.json()
 
-            print(f"[FAILED] status={response.status_code}")
+            logger.error(f"[FAILED] status={response.status_code}")
             return None
 
         except ProxyHTTPError as e:
-            print(f"[PROXY ERROR] {e}")
+            logger.error(f"[PROXY ERROR] {e}")
             return None
 
         except Exception as e:
-            print(f"[ERROR] {e}")
+            logger.error(f"[ERROR] {e}")
             return None
 
     def flatten_categories(self, categories: list[dict], parent_code: str | None = None) -> list[dict]:
@@ -97,11 +98,11 @@ class NoonCategoryScraper:
         return result
 
     async def scrape(self) -> list[dict]:
-        print("Fetching category tree...")
+        logger.info("Fetching category tree...")
         data = await self.fetch_categories()
 
         if data is None:
-            print("Failed to fetch categories.")
+            logger.error("Failed to fetch categories.")
             return []
 
         categories = None
@@ -112,5 +113,5 @@ class NoonCategoryScraper:
 
         if categories and categories.get('data', []):
             flat = self.flatten_categories(categories.get('data', []))
-            print(f"Total categories found: {len(flat)}")
+            logger.info(f"Total categories found: {len(flat)}")
             return flat
