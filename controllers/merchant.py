@@ -12,8 +12,8 @@ class NoonMerchantController:
         record = NoonMerchant(**kwargs)
         try:
             db.add(record)
-            await db.commit()
-            await db.refresh(record)
+            # await db.commit()
+            # await db.refresh(record)
             return record
         except SQLAlchemyError as exc:
             await db.rollback()

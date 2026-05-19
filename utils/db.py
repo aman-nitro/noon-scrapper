@@ -12,18 +12,7 @@ async def get_session():
     async with SessionLocal() as session:
         yield session
 
-
-@contextmanager
-def db_session():
-    session = SessionLocal()
-    try:
-        yield session
-        session.commit()
-    except Exception:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+        
 
 redis_client: redis.Redis | None = None
 sync_redis_client = None

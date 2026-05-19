@@ -12,11 +12,11 @@ class NoonProductController:
         record = NoonProduct(**kwargs)
         try:
             db.add(record)
-            await db.commit()
-            await db.refresh(record)
+            # await db.commit()
+            # await db.refresh(record)
             return record
         except SQLAlchemyError as exc:
-            await db.rollback()
+            # await db.rollback()
             raise RuntimeError(f"Failed to create NoonProduct: {exc}") from exc
 
     @staticmethod

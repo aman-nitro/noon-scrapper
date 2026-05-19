@@ -1,10 +1,8 @@
 from models.base import Base
 
-from datetime import datetime
 from sqlalchemy import (
     Column,
     DateTime,
-    ForeignKey,
     Integer,
     Text,
     func,
@@ -17,12 +15,12 @@ class NoonProduct(Base):
     name = Column(Text, nullable=False)
     brandId = Column(Text, nullable=False)
 
-    sku = Column(Text, nullable=False)
+    sku = Column(Text, nullable=False, unique=True, index=True)
     product_url = Column(Text, nullable=True)
     imageUrl = Column(Text, nullable=True)
 
     price = Column(Integer, nullable=False)
-    inventory = Column(Text, nullable=False)
+    inventory = Column(Integer, nullable=False)
     categoryId = Column(Integer, nullable=False)
     subCategoryId = Column(Integer, nullable=False)
     merchant_name = Column(Text, nullable=False)
@@ -32,8 +30,8 @@ class NoonProduct(Base):
         DateTime,
         nullable=False,
         server_default=func.now(),
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow
+        default=func.now(),
+        onupdate=func.now()
     )
 
     def __repr__(self):

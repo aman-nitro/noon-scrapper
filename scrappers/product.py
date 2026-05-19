@@ -71,7 +71,7 @@ class NoonProductScraper:
         )
 
     async def fetch_page(self, category: str, page: int) -> dict | None:
-        url = NOON_BASE_URL + category
+        url = f"{NOON_BASE_URL}/{category}"
         try:
             response = await self.proxy_client.get(
                 url,
