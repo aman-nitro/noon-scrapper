@@ -3,7 +3,7 @@ from loguru import logger
 
 import utils.dramatiq
 from scrappers.category import NoonCategoryScraper
-from controllers.brand import NoonBrandService
+from controllers.category import NoonCategoryController
 from utils.db import SessionLocal
 
 
@@ -17,18 +17,23 @@ async def run_scraper():
     scraper = NoonCategoryScraper()
     try:
         categories = await scraper.scrape()
-        logger.info(categories)
         logger.info(f"Total categ fetched are: {len(categories)}")
-        logger.info(f"Categories scrapped: {categories}")
+        db = SessionLocal()
 
-        # db = SessionLocal()
+        for cat in categories:
+            try:
+                record = {
+                    "categoryId": cat.get('parent_id') or cat.get('id'),
+                    "categoryName": cat.get('code'),
+                    "subCategoryId": cat.get('id'),
+                    "subCategoryName": cat.get('name')
+                }
+                await NoonCategoryController.create(db=db, **record)
+    
+            except Exception as err:
+                logger.exception(f'Error occurred while creating entry in database: {err}')
 
-        try:
-            pass
-            
-
-        except Exception as err:
-            logger.exception(f'Error occurred while creating entry in database')
+        logger.info(f"Categories saved in the database!!")
 
     finally:
         await scraper.proxy_client.close_all_sessions()

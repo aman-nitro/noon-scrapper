@@ -1,4 +1,6 @@
 from models.base import Base
+
+from datetime import datetime
 from sqlalchemy import (
     Column,
     DateTime,
@@ -8,29 +10,31 @@ from sqlalchemy import (
     func,
 )
 
-
 class NoonProduct(Base):
     __tablename__ = "noon_product"
 
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(Text, nullable=False)
-    brandId = Column(
-        Text,
-        ForeignKey(
-            "NoonBrand.id",
-            onupdate="CASCADE",
-            ondelete="CASCADE",
-        ),
-        nullable=False,
-    )
+    brandId = Column(Text, nullable=False)
 
-    unit = Column(Text, nullable=False)
+    sku = Column(Text, nullable=False)
+    product_url = Column(Text, nullable=True)
+    imageUrl = Column(Text, nullable=True)
+
     price = Column(Integer, nullable=False)
+    inventory = Column(Text, nullable=False)
     categoryId = Column(Integer, nullable=False)
     subCategoryId = Column(Integer, nullable=False)
-
+    merchant_name = Column(Text, nullable=False)
+    
     createdAt = Column(DateTime,nullable=False,server_default=func.now())
-    updatedAt = Column(DateTime,nullable=False)
-    imageUrl = Column(Text, nullable=True)
+    updatedAt = Column(
+        DateTime,
+        nullable=False,
+        server_default=func.now(),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
 
     def __repr__(self):
         return (

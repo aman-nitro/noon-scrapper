@@ -11,6 +11,7 @@ from sqlalchemy import (
 class NoonCategory(Base):
     __tablename__ = "noon_category"
 
+    id = Column(Integer, primary_key=True, index=True)
     categoryId = Column(Integer,nullable=False)
     categoryName = Column(Text,nullable=False)
 
