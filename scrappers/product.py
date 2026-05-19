@@ -6,8 +6,8 @@ from proxy.proxies import proxy_urls
 
 from constants import NOON_BASE_URL
 
-PAGE_LIMIT = 50
-MAX_PAGES_CONCURRENT = 5
+PAGE_LIMIT = 100
+MAX_PAGES_CONCURRENT = 10
 
 HEADERS = {
     "accept": "application/json, text/plain, */*",
